@@ -2,180 +2,203 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TikTikBoom</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>TikTikBoom - Horror Cats vs Dogs</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: system-ui, sans-serif;
-    background: #0a0a14;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    touch-action: manipulation;
-  }
-  h1 {
-    font-size: 2.8rem;
-    background: linear-gradient(90deg, #ff2d55, #ffcc00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    margin-bottom: 8px;
-  }
-  .status { font-size: 1.3rem; margin: 12px 0; min-height: 1.4em; text-align: center; }
-  .board {
-    display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-template-rows: repeat(3, 100px);
-    gap: 8px;
-    background: #1a1a2e;
-    padding: 8px;
-    border-radius: 16px;
-    box-shadow: 0 0 40px rgba(255,45,85,0.4);
-  }
-  .cell {
-    background: #111122;
-    border: 3px solid #ff2d55;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3.2rem;
-    font-weight: 900;
-    cursor: pointer;
-    transition: transform 0.1s, background 0.15s;
-    user-select: none;
-  }
-  .cell:active { transform: scale(0.95); }
-  .cell.x { color: #ff2d55; text-shadow: 0 0 12px #ff2d55; }
-  .cell.o { color: #5ac8fa; text-shadow: 0 0 12px #5ac8fa; }
-  .cell.boom {
-    animation: boom 0.5s ease-out;
-    background: #ff4500;
-    color: #fff;
-  }
-  @keyframes boom {
-    0% { transform: scale(1); }
-    40% { transform: scale(1.25); background: #ffcc00; }
-    100% { transform: scale(1); }
-  }
-  button {
-    margin-top: 20px;
-    background: #ff2d55;
-    color: white;
-    border: none;
-    padding: 14px 28px;
-    font-size: 1.1rem;
-    border-radius: 12px;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  .hint { margin-top: 16px; color: #aaa; font-size: 0.9rem; text-align: center; max-width: 320px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: #0a000a; color: #fff; font-family: system-ui, sans-serif; touch-action: none; }
+  #game { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+  h1 { font-size: 2.4rem; background: linear-gradient(90deg, #ff2d55, #ff6b00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 6px; text-shadow: 0 0 20px #ff2d55; }
+  .status { font-size: 1.1rem; margin: 6px 0; text-align: center; min-height: 1.3em; color: #ffcc00; }
+  .board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; width: min(92vw, 520px); aspect-ratio: 1; background: #1a0a1a; padding: 8px; border-radius: 14px; box-shadow: 0 0 50px rgba(255,45,85,0.6), inset 0 0 20px rgba(0,0,0,0.8); }
+  .cell { background: #0d000d; border: 2px solid #ff2d55; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; cursor: pointer; position: relative; overflow: hidden; transition: transform 0.1s, box-shadow 0.2s; }
+  .cell:active { transform: scale(0.92); }
+  .cell.cat { color: #ff2d55; text-shadow: 0 0 15px #ff2d55, 0 0 30px #ff0000; filter: drop-shadow(0 0 8px #ff2d55); }
+  .cell.dog { color: #ff6b00; text-shadow: 0 0 15px #ff6b00, 0 0 30px #ff4500; filter: drop-shadow(0 0 8px #ff6b00); }
+  .cell.boom { animation: pulseBoom 0.5s ease-out; background: #ff2200; }
+  @keyframes pulseBoom { 0% { transform: scale(1); } 50% { transform: scale(1.15); box-shadow: 0 0 30px #ffcc00; } 100% { transform: scale(1); } }
+  #explosion { position: fixed; inset: 0; pointer-events: none; z-index: 200; opacity: 0; transition: opacity 0.4s; }
+  #explosion.show { opacity: 1; }
+  #explosion canvas { width: 100%; height: 100%; }
+  .hint { position: absolute; bottom: 10px; font-size: 0.75rem; color: #666; text-align: center; width: 100%; }
+  button { margin-top: 10px; background: linear-gradient(90deg, #ff2d55, #ff6b00); color: #fff; border: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; box-shadow: 0 0 20px rgba(255,45,85,0.5); }
 </style>
 </head>
 <body>
+<div id="game">
   <h1>TikTikBoom</h1>
-  <div class="status" id="status">Your turn (X)</div>
+  <div class="status" id="status">Cats 🐱 vs Dogs 🐶 • Your turn</div>
   <div class="board" id="board"></div>
   <button onclick="reset()">New Game</button>
-  <p class="hint">Miss a block and the line explodes. Create forks to force a BOOM!</p>
+  <p class="hint">5×5 Halloween Horror • 3 in a row or unblocked threat = BOOM</p>
+</div>
+<div id="explosion"><canvas id="expCanvas"></canvas></div>
 
 <script>
+const SIZE = 5, WIN = 3;
 const boardEl = document.getElementById('board');
 const statusEl = document.getElementById('status');
-let board = Array(9).fill(null);
-let current = 'X';
+const expDiv = document.getElementById('explosion');
+const expCanvas = document.getElementById('expCanvas');
+const ctx = expCanvas.getContext('2d');
+let board = Array(SIZE*SIZE).fill(null);
+let current = 'C';
 let over = false;
 
-const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-
 function getThreats(p) {
-  const t = [];
-  for (const line of lines) {
-    const m = line.map(i => board[i]);
-    if (m.filter(x => x === p).length === 2 && m.includes(null)) {
-      t.push(line[m.indexOf(null)]);
+  const threats = new Set();
+  const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      for (const [dr, dc] of dirs) {
+        const cells = [];
+        for (let k = 0; k < WIN; k++) {
+          const nr = r + dr*k, nc = c + dc*k;
+          if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) { cells.length = 0; break; }
+          cells.push(nr*SIZE + nc);
+        }
+        if (cells.length === WIN) {
+          const marks = cells.map(i => board[i]);
+          if (marks.filter(m => m === p).length === WIN-1 && marks.includes(null)) {
+            threats.add(cells[marks.indexOf(null)]);
+          }
+        }
+      }
     }
   }
-  return [...new Set(t)];
+  return [...threats];
 }
 function hasWin(p) {
-  return lines.some(l => l.every(i => board[i] === p));
+  const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      for (const [dr, dc] of dirs) {
+        let ok = true;
+        for (let k = 0; k < WIN; k++) {
+          const nr = r + dr*k, nc = c + dc*k;
+          if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE || board[nr*SIZE + nc] !== p) { ok = false; break; }
+        }
+        if (ok) return true;
+      }
+    }
+  }
+  return false;
 }
 function aiMove() {
-  const me = 'O', opp = 'X';
+  const me = 'D', opp = 'C';
   const mine = getThreats(me);
   if (mine.length) return mine[0];
   const theirs = getThreats(opp);
   if (theirs.length) return theirs[0];
-  for (const p of [4,0,2,6,8,1,3,5,7]) if (board[p] == null) return p;
-  return board.findIndex(c => c == null);
+  const empty = board.map((v,i) => v===null ? i : -1).filter(i => i>=0);
+  empty.sort((a,b) => Math.abs(a%SIZE - 2) + Math.abs(Math.floor(a/SIZE)-2) - (Math.abs(b%SIZE-2)+Math.abs(Math.floor(b/SIZE)-2)));
+  return empty[0] ?? empty[Math.floor(Math.random()*empty.length)];
 }
-
 function render() {
   boardEl.innerHTML = '';
-  for (let i = 0; i < 9; i++) {
-    const c = document.createElement('div');
-    c.className = 'cell' + (board[i] ? ' ' + board[i].toLowerCase() : '');
-    c.textContent = board[i] || '';
-    c.onclick = () => move(i);
-    boardEl.appendChild(c);
+  for (let i = 0; i < SIZE*SIZE; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (board[i] === 'C') { cell.classList.add('cat'); cell.textContent = '🐱'; }
+    else if (board[i] === 'D') { cell.classList.add('dog'); cell.textContent = '🐶'; }
+    cell.onclick = () => move(i);
+    boardEl.appendChild(cell);
   }
 }
-
 function move(i) {
-  if (over || board[i] || current !== 'X') return;
-  const opp = 'O';
+  if (over || board[i] || current !== 'C') return;
+  const opp = 'D';
   const threats = getThreats(opp);
-  board[i] = 'X';
-  if (hasWin('X')) return end('You win!', false);
-  if (threats.length && !threats.includes(i)) return boom(threats, 'O');
+  board[i] = 'C';
+  if (hasWin('C')) return end('Cats win! 🐱', false);
+  if (threats.length && !threats.includes(i)) return boom(threats, 'D');
   if (board.every(Boolean)) return end('Draw', false);
-  current = 'O';
-  statusEl.textContent = 'AI thinking...';
+  current = 'D';
+  statusEl.textContent = 'Dogs thinking... 🐶';
   render();
   setTimeout(() => {
     const ai = aiMove();
     if (ai >= 0) {
-      const threatsX = getThreats('X');
-      board[ai] = 'O';
-      if (hasWin('O')) return end('AI wins', false);
-      if (threatsX.length && !threatsX.includes(ai)) return boom(threatsX, 'X');
+      const threatsC = getThreats('C');
+      board[ai] = 'D';
+      if (hasWin('D')) return end('Dogs win! 🐶', false);
+      if (threatsC.length && !threatsC.includes(ai)) return boom(threatsC, 'C');
       if (board.every(Boolean)) return end('Draw', false);
-      current = 'X';
-      statusEl.textContent = 'Your turn (X)';
+      current = 'C';
+      statusEl.textContent = 'Your turn (Cat) 🐱';
     }
     render();
-  }, 500);
+  }, 650);
 }
-
 function boom(cells, winner) {
   over = true;
   cells.forEach(i => {
     const el = boardEl.children[i];
-    if (el) { el.classList.add('boom'); el.textContent = '💥'; }
+    if (el) el.classList.add('boom');
   });
-  statusEl.textContent = winner === 'X' ? 'BOOM! You win!' : 'BOOM! AI wins';
-  statusEl.style.color = '#ffcc00';
-  if (navigator.vibrate) navigator.vibrate(200);
+  statusEl.textContent = winner === 'C' ? 'BOOM! Cats win! 🐱💥' : 'BOOM! Dogs win! 🐶💥';
+  crazyExplosion();
 }
-
 function end(msg, isBoom) {
   over = true;
   statusEl.textContent = msg;
-  statusEl.style.color = isBoom ? '#ffcc00' : '#5ac8fa';
+  crazyExplosion(false);
 }
-
+function crazyExplosion(full = true) {
+  expCanvas.width = window.innerWidth;
+  expCanvas.height = window.innerHeight;
+  expDiv.classList.add('show');
+  let particles = [];
+  const count = full ? 250 : 120;
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 12 + 4;
+    particles.push({
+      x: expCanvas.width / 2,
+      y: expCanvas.height / 2,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1 + Math.random() * 0.5,
+      size: Math.random() * 10 + 3,
+      color: Math.random() > 0.6 ? '#ff2d55' : (Math.random() > 0.5 ? '#ff6b00' : '#ffcc00'),
+      rot: Math.random() * Math.PI
+    });
+  }
+  let frame = 0;
+  function anim() {
+    ctx.fillStyle = 'rgba(10,0,10,0.18)';
+    ctx.fillRect(0, 0, expCanvas.width, expCanvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.life -= 0.006; p.vy += 0.15; p.rot += 0.1;
+      if (p.life <= 0) return;
+      ctx.globalAlpha = Math.min(1, p.life);
+      ctx.fillStyle = p.color;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+      ctx.restore();
+    });
+    particles = particles.filter(p => p.life > 0);
+    frame++;
+    if (particles.length > 0 && frame < 300) requestAnimationFrame(anim);
+    else setTimeout(() => expDiv.classList.remove('show'), 800);
+  }
+  anim();
+  if (navigator.vibrate) navigator.vibrate([80, 40, 150, 40, 250, 40, 400]);
+}
 function reset() {
-  board = Array(9).fill(null);
-  current = 'X';
+  board = Array(SIZE*SIZE).fill(null);
+  current = 'C';
   over = false;
-  statusEl.textContent = 'Your turn (X)';
-  statusEl.style.color = '#fff';
+  statusEl.textContent = 'Cats 🐱 vs Dogs 🐶 • Your turn';
+  expDiv.classList.remove('show');
   render();
 }
+window.addEventListener('resize', () => {
+  expCanvas.width = window.innerWidth;
+  expCanvas.height = window.innerHeight;
+});
 reset();
 </script>
 </body>
